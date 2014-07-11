@@ -354,20 +354,6 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="4">
-         <widget class="QLabel" name="skinNormalLBL">
-          <property name="font">
-           <font>
-            <pointsize>8</pointsize>
-            <weight>50</weight>
-            <bold>false</bold>
-           </font>
-          </property>
-          <property name="text">
-           <string>None</string>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="2">
          <spacer name="horizontalSpacer_4">
           <property name="orientation">
@@ -393,6 +379,36 @@
            </size>
           </property>
          </spacer>
+        </item>
+        <item row="0" column="4">
+         <widget class="QComboBox" name="skinNormalCMB">
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>8</pointsize>
+           </font>
+          </property>
+          <item>
+           <property name="text">
+            <string>None</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Interactive</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Post</string>
+           </property>
+          </item>
+         </widget>
         </item>
        </layout>
       </item>

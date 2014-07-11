@@ -143,9 +143,11 @@ class skinWrangler(base_class, form_class):
         #This item is removed, see jointListSelChanged fn below for more info
         #self.connect(self.jointLST, QtCore.SIGNAL('itemSelectionChanged()'), self.jointListSelChanged)
         
+        #callbacks on state change
         self.connect(self.jointLST, QtCore.SIGNAL('currentItemChanged (QTreeWidgetItem *,QTreeWidgetItem *)'), self.onItemChanged)
         self.connect(self.listAllCHK, QtCore.SIGNAL('stateChanged(int)'), self.listAllChanged)
         self.connect(self.nameSpaceCHK, QtCore.SIGNAL('stateChanged(int)'), self.cutNamespace)
+        self.connect(self.skinNormalCMB, QtCore.SIGNAL('currentIndexChanged(int)'), self.skinNormalFn)
         
         self.connect(self.filterLINE, QtCore.SIGNAL('returnPressed ()'), self.refreshUI)
         self.connect(self.filterBTN, QtCore.SIGNAL("clicked()"), self.refreshUI)
@@ -229,6 +231,7 @@ class skinWrangler(base_class, form_class):
     
         return None
     
+    #annotation
     def removeAnnotations(self):
         annos = cmds.ls('SKINWRANGLER_ANNO_*')
         if annos:
@@ -290,6 +293,18 @@ class skinWrangler(base_class, form_class):
         for inf in wDict.keys():
             re.append((inf, wDict[inf]))
         return re
+        
+    def skinNormalFn(self, n):
+        if n == 0:
+            cmds.setAttr(self.currentSkin + '.normalizeWeights', n)
+            self.currentNormalization = 'None'
+        if n == 1:
+            cmds.setAttr(self.currentSkin + '.normalizeWeights', n)
+            self.currentNormalization = 'Interactive'
+        if n == 2:
+            cmds.setAttr(self.currentSkin + '.normalizeWeights', n)
+            self.currentNormalization = 'Post'
+        self.refreshUI()
     
     ## POLY SELECTION UI
     ########################################################################
@@ -632,13 +647,13 @@ class skinWrangler(base_class, form_class):
             #normalization
             n = cmds.skinCluster(skin, q=1, nw=1)
             if n == 0:
-                self.skinNormalLBL.setText('None')
+                self.skinNormalCMB.setCurrentIndex(n)
                 self.currentNormalization = 'None'
             if n == 1:
-                self.skinNormalLBL.setText('Interactive')
+                self.skinNormalCMB.setCurrentIndex(n)
                 self.currentNormalization = 'Interactive'
             if n == 2:
-                self.skinNormalLBL.setText('Post')
+                self.skinNormalCMB.setCurrentIndex(n)
                 self.currentNormalization = 'Post'
             
             #max weights
