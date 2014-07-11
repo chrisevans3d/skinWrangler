@@ -9,9 +9,8 @@ TODO
 - throw warning if every inf in the active list is selected to be zeroed out
 - multi-select support for Set Weight function (normalization)
 - when turning off dynamic annotation, delete existing annotations
-- label joints
 - figure out a way to color mesh from joint influence colors
-- show current selected inf in vtx colors
+- show current selected inf in vtx colors (maybe artisan maps?)
 - better skin mirror with friggin feedback as to what points aren't found
 - store items as long names and operate on long names (user data)
 '''
@@ -140,11 +139,8 @@ class skinWrangler(base_class, form_class):
         self.connect(self.bindPoseBTN, QtCore.SIGNAL("clicked()"), self.bindPoseFn)
         self.connect(self.removeUnusedBTN, QtCore.SIGNAL("clicked()"), self.removeUnusedFn)
         
-        #This item is removed, see jointListSelChanged fn below for more info
-        #self.connect(self.jointLST, QtCore.SIGNAL('itemSelectionChanged()'), self.jointListSelChanged)
-        
         #callbacks on state change
-        self.connect(self.jointLST, QtCore.SIGNAL('currentItemChanged (QTreeWidgetItem *,QTreeWidgetItem *)'), self.onItemChanged)
+        self.connect(self.jointLST, QtCore.SIGNAL('itemSelectionChanged ()'), self.jointListSelChanged)
         self.connect(self.listAllCHK, QtCore.SIGNAL('stateChanged(int)'), self.listAllChanged)
         self.connect(self.nameSpaceCHK, QtCore.SIGNAL('stateChanged(int)'), self.cutNamespace)
         self.connect(self.skinNormalCMB, QtCore.SIGNAL('currentIndexChanged(int)'), self.skinNormalFn)
@@ -310,37 +306,30 @@ class skinWrangler(base_class, form_class):
     ########################################################################
     def selGrowFn(self):
         cmds.GrowPolygonSelectionRegion()
-        self.refreshUI()
     def selShrinkFn(self):
         cmds.ShrinkPolygonSelectionRegion()
-        self.refreshUI()
     def selShellFn(self):
         cmds.ConvertSelectionToShell()
-        self.refreshUI()
     def selLoopFn(self):
         cmds.polySelectSp(loop=1)
-        self.refreshUI()
     def selPointsEffectedFn(self):
         cmds.skinCluster(self.currentSkin, e=1, selectInfluenceVerts=self.currentInf)
     
     
     ## JOINT LIST
     ########################################################################
-    #TODO: I believe this is getting fired twice
-    def onItemChanged(self, current, previous, debug=1):
+    #TODO: I believe this callback is getting fired twice per user input
+    def jointListSelChanged(self, debug=1):
+        #TODO: Need to use/store long paths or API pointers here as extra data on the widgets
         try:
-            if current:
-                if current.text(0) == 'MAKE A COMPONENT\n SELECTION ON\n SKINNED MESH':
+            self.currentWidgets = self.jointLST.selectedItems()
+            nodes = [item.text(0) for item in self.currentWidgets]
+            if nodes:
+                if nodes[0] == 'MAKE A COMPONENT\n SELECTION ON\n SKINNED MESH':
                     self.currentInf = []
                     return None
-                #TODO: use long path here
-                self.currentInf = [current.text(0)]
                 
-                self.currentWidgets = self.jointLST.selectedItems()
-                nodes = [item.text(0) for item in self.currentWidgets]
-                num = len(nodes)
-                if num > 1:
-                    self.currentInf = nodes
+                self.currentInf = nodes
                 
                 if debug:
                     print self.currentInf
@@ -349,7 +338,8 @@ class skinWrangler(base_class, form_class):
                 if self.dynAnnotationCHK.isChecked():
                     self.removeAnnotations()
                     self.annotateNodes(nodes)
-                print self.currentInf
+                if debug:
+                    print self.currentInf
             
         except Exception as e:
             cmds.error(e)
@@ -688,6 +678,7 @@ class skinWrangler(base_class, form_class):
             if self.currentInf:
                 for item in self.currentInf:
                     self.getJointFromList(item).setSelected(True)
+            print 'refreshUI completed.'
                     
 
     def profileRefreshUI(self):
