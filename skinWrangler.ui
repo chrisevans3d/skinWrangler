@@ -481,6 +481,9 @@
             <bold>true</bold>
            </font>
           </property>
+          <property name="toolTip">
+           <string>Explicitely set the weight value</string>
+          </property>
           <property name="text">
            <string>SET WEIGHT</string>
           </property>
@@ -494,6 +497,9 @@
             <height>16777215</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>Add value to current weight for selected joint</string>
+          </property>
           <property name="text">
            <string>+</string>
           </property>
@@ -506,6 +512,9 @@
             <width>25</width>
             <height>16777215</height>
            </size>
+          </property>
+          <property name="toolTip">
+           <string>Subtract value to current weight for selected joint</string>
           </property>
           <property name="text">
            <string>-</string>
@@ -601,7 +610,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>80</width>
+            <width>70</width>
             <height>16777215</height>
            </size>
           </property>
@@ -611,6 +620,9 @@
             <weight>75</weight>
             <bold>true</bold>
            </font>
+          </property>
+          <property name="toolTip">
+           <string>Paste stored skinning weights</string>
           </property>
           <property name="text">
            <string>PASTE</string>
@@ -624,6 +636,9 @@
             <width>25</width>
             <height>16777215</height>
            </size>
+          </property>
+          <property name="toolTip">
+           <string>Used to refresh the weight list</string>
           </property>
           <property name="text">
            <string>&lt;</string>
@@ -667,12 +682,21 @@
           </item>
           <item>
            <widget class="QPushButton" name="copyBTN">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="font">
              <font>
               <pointsize>10</pointsize>
               <weight>75</weight>
               <bold>true</bold>
              </font>
+            </property>
+            <property name="toolTip">
+             <string>Copy/store skinning info for current selection</string>
             </property>
             <property name="text">
              <string>COPY</string>
@@ -908,6 +932,9 @@
         </item>
         <item>
          <widget class="QCheckBox" name="labelJointsCHK">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="font">
            <font>
             <pointsize>8</pointsize>
@@ -966,6 +993,9 @@
              <bold>true</bold>
             </font>
            </property>
+           <property name="toolTip">
+            <string>Maya remove unused influences command</string>
+           </property>
            <property name="text">
             <string>REMOVE UNUSED INFS</string>
            </property>
@@ -975,7 +1005,7 @@
           <widget class="QPushButton" name="clampInfBTN">
            <property name="maximumSize">
             <size>
-             <width>10000</width>
+             <width>122</width>
              <height>16777215</height>
             </size>
            </property>
@@ -985,6 +1015,9 @@
              <weight>75</weight>
              <bold>true</bold>
             </font>
+           </property>
+           <property name="toolTip">
+            <string>Trims down the smallest values and re-normalizes</string>
            </property>
            <property name="text">
             <string>CLAMP MAX INFS</string>
@@ -1012,10 +1045,24 @@
           <number>2</number>
          </property>
          <item>
+          <widget class="QPushButton" name="addJntBTN">
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>ADD JNT</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="bindPoseBTN">
            <property name="maximumSize">
             <size>
-             <width>85</width>
+             <width>16777215</width>
              <height>16777215</height>
             </size>
            </property>
@@ -1033,6 +1080,12 @@
          </item>
          <item>
           <widget class="QPushButton" name="selectVertsWithInfBTN">
+           <property name="maximumSize">
+            <size>
+             <width>131</width>
+             <height>16777215</height>
+            </size>
+           </property>
            <property name="font">
             <font>
              <pointsize>10</pointsize>
@@ -1040,8 +1093,11 @@
              <bold>true</bold>
             </font>
            </property>
+           <property name="toolTip">
+            <string>Select vertices that have more influences than the number</string>
+           </property>
            <property name="text">
-            <string>SEL VERTS WITH MORE THAN</string>
+            <string>SEL VTX WITH &gt;</string>
            </property>
           </widget>
          </item>
@@ -1083,6 +1139,28 @@
        </property>
        <property name="checkable">
         <bool>true</bool>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="avgOptionCHK">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>30</y>
+         <width>336</width>
+         <height>15</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>7</pointsize>
+        </font>
+       </property>
+       <property name="toolTip">
+        <string>Uses custom code to average skinning,
+respecting the max influences</string>
+       </property>
+       <property name="text">
+        <string>Calc 'AVERAGE' with max inf (no hammer)</string>
        </property>
       </widget>
      </widget>

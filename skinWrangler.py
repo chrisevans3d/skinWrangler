@@ -7,12 +7,13 @@ version = 2.0
 TODO
 - if a joint is selected and zeroed out, don't keep it selected on refresh and focus on it
 - throw warning if every inf in the active list is selected to be zeroed out
-- multi-select support for Set Weight function (normalization)
-- when turning off dynamic annotation, delete existing annotations
 - figure out a way to color mesh from joint influence colors
-- show current selected inf in vtx colors (maybe artisan maps?)
 - better skin mirror with friggin feedback as to what points aren't found
-- store items as long names and operate on long names (user data)
+
+Add this to a shelf:
+import skinWrangler as sw
+skinWranglerWindow = sw.show()
+
 '''
 
 import os
@@ -70,8 +71,7 @@ try:
     selfDirectory = os.path.dirname(__file__)
     uiFile = selfDirectory + '/skinWrangler.ui'
 except:
-    #uiFile = 'C:\\Users\\chris\\Documents\\maya\\2015-x64\\scripts\\skinWrangler\\skinWrangler.ui'
-    uiFile = 'C:\\Users\\chrise\\Documents\\maya\\2015-x64\\scripts\\skinWrangler\\skinWrangler.ui'
+    uiFile = 'C:\\Users\\chris\\Documents\\maya\\2015-x64\\scripts\\skinWrangler\\skinWrangler.ui'
 if os.path.isfile(uiFile):
     form_class, base_class = loadUiType(uiFile)
 else:
@@ -133,11 +133,8 @@ class skinWrangler(base_class, form_class):
         self.connect(self.minusWeightBTN, QtCore.SIGNAL("clicked()"), self.minusWeightFn)
         self.connect(self.copyBTN, QtCore.SIGNAL("clicked()"), self.copyFn)
         self.connect(self.pasteBTN, QtCore.SIGNAL("clicked()"), self.pasteFn)
-        self.connect(self.clampInfBTN, QtCore.SIGNAL("clicked()"), self.clampInfFn)
         self.connect(self.selectVertsWithInfBTN, QtCore.SIGNAL("clicked()"), self.selectVertsWithInfFn)
         self.connect(self.setAverageWeightBTN, QtCore.SIGNAL("clicked()"), self.setAverageWeightFn)
-        self.connect(self.bindPoseBTN, QtCore.SIGNAL("clicked()"), self.bindPoseFn)
-        self.connect(self.removeUnusedBTN, QtCore.SIGNAL("clicked()"), self.removeUnusedFn)
         
         #callbacks on state change
         self.connect(self.jointLST, QtCore.SIGNAL('itemSelectionChanged ()'), self.jointListSelChanged)
@@ -145,8 +142,15 @@ class skinWrangler(base_class, form_class):
         self.connect(self.nameSpaceCHK, QtCore.SIGNAL('stateChanged(int)'), self.cutNamespace)
         self.connect(self.skinNormalCMB, QtCore.SIGNAL('currentIndexChanged(int)'), self.skinNormalFn)
         
+        #tree filter
         self.connect(self.filterLINE, QtCore.SIGNAL('returnPressed ()'), self.refreshUI)
         self.connect(self.filterBTN, QtCore.SIGNAL("clicked()"), self.refreshUI)
+        
+        #SKIN UTILS TAB:
+        self.connect(self.clampInfBTN, QtCore.SIGNAL("clicked()"), self.clampInfFn)
+        self.connect(self.bindPoseBTN, QtCore.SIGNAL("clicked()"), self.bindPoseFn)
+        self.connect(self.removeUnusedBTN, QtCore.SIGNAL("clicked()"), self.removeUnusedFn)
+        self.connect(self.addJntBTN, QtCore.SIGNAL("clicked()"), self.addJntFn)
         
         #TOOLS TAB
         self.connect(self.jointOnBboxCenterBTN, QtCore.SIGNAL("clicked()"), self.jointOnBboxCenterFn)
@@ -166,7 +170,8 @@ class skinWrangler(base_class, form_class):
         for qt in QtGui.qApp.topLevelWidgets():
             try:
                 if qt.__class__.__name__ == self.__class__.__name__:
-                    qt.close()
+                    qt.deleteLater()
+                    print 'skinWrangler: Closed ' + str(qt.__class__.__name__)
             except:
                 pass
 
@@ -404,24 +409,37 @@ class skinWrangler(base_class, form_class):
         else: cmds.warning('[skinWrangler] No influences/joints selected')
         
     def plusWeightFn(self):
-        val = self.setWeightSpin.value()
-        if self.currentInf:
-            for inf in self.currentInf:
-                cmds.skinPercent(self.currentSkin, self.currentVerts, tv=[inf, val], r=1)
-        else: cmds.warning('[skinWrangler] No influences/joints selected')
-        self.refreshUI()
+        try:
+            cmds.undoInfo(openChunk=True)
+            val = self.setWeightSpin.value()
+            if self.currentInf:
+                for inf in self.currentInf:
+                    cmds.skinPercent(self.currentSkin, self.currentVerts, tv=[inf, val], r=1)
+            else: cmds.warning('[skinWrangler] No influences/joints selected')
+            self.refreshUI()
+        except Exception as e:
+            print e
+        finally:
+            cmds.undoInfo(closeChunk=True)
     
     def minusWeightFn(self):
-        val = -self.setWeightSpin.value()
-        if self.currentInf:
-            for inf in self.currentInf:
-                cmds.skinPercent(self.currentSkin, self.currentVerts, tv=[inf, val], r=1)
-        else: cmds.warning('[skinWrangler] No influences/joints selected')
-        self.refreshUI()
+        try:
+            cmds.undoInfo(openChunk=True)
+            val = -self.setWeightSpin.value()
+            if self.currentInf:
+                for inf in self.currentInf:
+                    cmds.skinPercent(self.currentSkin, self.currentVerts, tv=[inf, val], r=1)
+            else: cmds.warning('[skinWrangler] No influences/joints selected')
+            self.refreshUI()
+        except Exception as e:
+            print e
+        finally:
+            cmds.undoInfo(closeChunk=True)
     
     def copyFn(self):
         if self.copyBTN.isChecked() == True:
             self.copyBTN.setText('WEIGHTS COPIED')
+            self.copyBTN.setStyleSheet("background-color: #7a4242")
             self.getSelected()
             self.copyCache = self.getAvgVertWeights(self.currentVerts, self.currentSkin)
             toolTip = ''
@@ -430,6 +448,7 @@ class skinWrangler(base_class, form_class):
             self.copyBTN.setToolTip(toolTip)
         else:
             self.copyBTN.setText('COPY')
+            self.copyBTN.setStyleSheet("background-color: #666666")
             self.copyBTN.setToolTip('')
             self.copyCache = None
         
@@ -444,15 +463,22 @@ class skinWrangler(base_class, form_class):
         self.checkMaxSkinInfluences(self.currentMesh, self.selectVertsWithInfSPIN.value(), select=1)
     
     def setAverageWeightFn(self):
-        cmds.undoInfo(openChunk=True)
-        sel = cmds.ls(sl=1)
-        cmds.ConvertSelectionToVertices()
-        newSel = cmds.ls(sl=1, flatten=1)
-        for vert in newSel:
-            self.setAverageWeight(vert)
-        self.clampInfluences(self.currentMesh, self.clampInfSPIN.value(), force=1)
-        cmds.select(sel)
-        cmds.undoInfo(closeChunk=True)
+        try:
+            cmds.undoInfo(openChunk=True)
+            if not self.avgOptionCHK.isChecked():
+                maya.mel.eval('weightHammerVerts;')
+            else:
+                sel = cmds.ls(sl=1)
+                cmds.ConvertSelectionToVertices()
+                newSel = cmds.ls(sl=1, flatten=1)
+                for vert in newSel:
+                    self.setAverageWeight(vert)
+                self.clampInfluences(self.currentMesh, self.clampInfSPIN.value(), force=1)
+                cmds.select(sel)
+        except Exception as e:
+            cmds.error('skinWrangler: ' + str(e))
+        finally:
+            cmds.undoInfo(closeChunk=True)
     
     def setAverageWeight(self, vtx):
         msh = vtx.split('.')[0]
@@ -561,6 +587,19 @@ class skinWrangler(base_class, form_class):
         else:
             cmds.warning('Cannot clamp influences due to locked weights on skinCluster')
     
+    def addJntFn(self):
+        sel = cmds.ls(sl=1)
+        if len(sel) == 2:
+            mesh, jnt = None, None
+            for node in sel:
+                if cmds.nodeType(node) == 'joint': jnt = node
+                if cmds.listRelatives(node, allDescendents=True, noIntermediate=True, fullPath=True, type="mesh"):
+                    mesh = node
+            if jnt and mesh:
+                cmds.skinCluster(self.findRelatedSkinCluster(mesh), e=1, lw=1, wt=0, ai=jnt)
+                cmds.setAttr(jnt + '.liw', 0)
+            else:
+                cmds.warning('skinWrangler: Cannot find joint and mesh in selection: ' + str(sel))
 
     ## TOOLS TAB
     ########################################################################
