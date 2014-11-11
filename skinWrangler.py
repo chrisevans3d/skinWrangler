@@ -26,6 +26,7 @@ import pysideuic
 
 import maya.cmds as cmds
 import maya.OpenMayaUI as openMayaUI
+import maya.mel as mel
 
 def show():
     global skinWranglerWindow
@@ -466,7 +467,7 @@ class skinWrangler(base_class, form_class):
         try:
             cmds.undoInfo(openChunk=True)
             if not self.avgOptionCHK.isChecked():
-                maya.mel.eval('weightHammerVerts;')
+                mel.eval('weightHammerVerts;')
             else:
                 sel = cmds.ls(sl=1)
                 cmds.ConvertSelectionToVertices()
