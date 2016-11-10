@@ -3,17 +3,14 @@ skinWrangler
 Christopher Evans, Version 2.0, July 2014
 @author = Chris Evans
 version = 2.0
-
 TODO
 - if a joint is selected and zeroed out, don't keep it selected on refresh and focus on it
 - throw warning if every inf in the active list is selected to be zeroed out
 - figure out a way to color mesh from joint influence colors
 - better skin mirror with friggin feedback as to what points aren't found
-
 Add this to a shelf:
 import skinWrangler as sw
 skinWranglerWindow = sw.show()
-
 '''
 
 import os
@@ -72,7 +69,7 @@ try:
     selfDirectory = os.path.dirname(__file__)
     uiFile = selfDirectory + '/skinWrangler.ui'
 except:
-    uiFile = 'C:\\Users\\chris\\Documents\\maya\\2015-x64\\scripts\\skinWrangler\\skinWrangler.ui'
+    uiFile = 'D:\\Build\\usr\\jeremy_ernst\\MayaTools\\General\\Scripts\\epic\\rigging\\skinWrangler\\skinWrangler.ui'
 if os.path.isfile(uiFile):
     form_class, base_class = loadUiType(uiFile)
 else:
@@ -113,7 +110,7 @@ class skinWrangler(base_class, form_class):
         self.setWindowTitle(self.title)
         
         wName = openMayaUI.MQtUtil.fullName(long(shiboken.getCppPointer(self)[0]))
-        
+
         ## Connect UI
         ########################################################################
         self.connect(self.refreshBTN, QtCore.SIGNAL("clicked()"), self.refreshUI)
@@ -155,9 +152,10 @@ class skinWrangler(base_class, form_class):
         
         #TOOLS TAB
         self.connect(self.jointOnBboxCenterBTN, QtCore.SIGNAL("clicked()"), self.jointOnBboxCenterFn)
-        
-        print 'skinWrangler initialized as', wName
-        self.scriptJobNum = cmds.scriptJob(e=['SelectionChanged', 'skinWranglerWindow.refreshUI()'], p=wName, kws=1)
+        self.connect(self.rigidShellsBtn, QtCore.SIGNAL("clicked()"), self.rigidShellsFn)
+
+        self.scriptJobNum = cmds.scriptJob(e=['SelectionChanged', 'skinWranglerWindow.refreshUI()'], kws=1)
+        print 'skinWrangler initialized as', wName, 'scriptJob:', self.scriptJobNum
         self.refreshUI()
         
     def closeEvent(self, e):
@@ -514,7 +512,7 @@ class skinWrangler(base_class, form_class):
     
         verts = cmds.polyEvaluate(node, v=1)
         returnVerts = []
-        for i in range(0,verts):
+        for i in range(0,int(verts)):
             inf= cmds.skinPercent(skinClust, (node + ".vtx[" + str(i) + "]"), q=1, v=1)
             activeInf = []
             for j in range(0,len(inf)):
@@ -631,7 +629,37 @@ class skinWrangler(base_class, form_class):
             jnt = cmds.joint(name=newName)
             cmds.xform(jnt, m=locXform)
             cmds.delete(self.jointLoc)
-        
+
+    def getPolyShells(self, mesh):
+        # returns poly shells as lists of faces
+        shells = []
+        polygons = [i for i in range(0, cmds.polyEvaluate(f=1))]
+        for poly in polygons:
+            faces = cmds.polySelect(mesh, ets=poly, q=1)
+            shells.append(faces)
+            for face in faces:
+                polygons.pop(polygons.index(face))
+        return shells
+
+    def skinPolyShells(self, mesh, skin):
+        # floods each shell with it's avg vtx weight
+        try:
+            cmds.undoInfo(openChunk=True)
+            for shell in self.getPolyShells(mesh):
+                facesNice = [mesh + '.f[' + str(f) + ']' for f in shell]
+                aw = self.getAvgVertWeights(facesNice, skin)
+                tvTuples = self.vDictToTv(aw)
+                cmds.skinPercent(skin, facesNice, tv=tvTuples)
+        except Exception as e:
+            print e
+        finally:
+            cmds.undoInfo(closeChunk=True)
+
+    def rigidShellsFn(self):
+        meshes = cmds.ls(sl=1)
+        for mesh in meshes:
+            skin = self.findRelatedSkinCluster(mesh)
+            self.skinPolyShells(mesh, skin)
     
     ## REFRESH UI
     ###############
