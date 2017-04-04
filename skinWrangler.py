@@ -15,7 +15,7 @@ skinWranglerWindow = sw.show()
 
 import os
 
-from Qt import QtGui, QtWidgets
+from .Qt import QtGui, QtWidgets
 from cStringIO import StringIO
 import xml.etree.ElementTree as xml
 
