@@ -9,13 +9,13 @@ TODO
 - figure out a way to color mesh from joint influence colors
 - better skin mirror with friggin feedback as to what points aren't found
 Add this to a shelf:
-import skinWrangler as sw
+from skinWranger import skinWrangler as sw
 skinWranglerWindow = sw.show()
 '''
 
 import os
 
-from .Qt import QtGui, QtWidgets
+from .Qtpy.Qt import QtGui, QtWidgets
 from cStringIO import StringIO
 import xml.etree.ElementTree as xml
 
