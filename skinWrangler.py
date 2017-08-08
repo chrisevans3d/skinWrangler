@@ -9,7 +9,7 @@ TODO
 - figure out a way to color mesh from joint influence colors
 - better skin mirror with friggin feedback as to what points aren't found
 Add this to a shelf:
-import skinWrangler as sw
+from skinWrangler import skinWrangler as sw
 skinWranglerWindow = sw.show()
 '''
 
