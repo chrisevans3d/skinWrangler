@@ -9,21 +9,27 @@ TODO
 - figure out a way to color mesh from joint influence colors
 - better skin mirror with friggin feedback as to what points aren't found
 Add this to a shelf:
-import skinWrangler as sw
+from skinWrangler import skinWrangler as sw
 skinWranglerWindow = sw.show()
 '''
 
 import os
 
-import shiboken
-from PySide import QtGui, QtCore
+from .Qtpy.Qt import QtGui, QtWidgets
 from cStringIO import StringIO
 import xml.etree.ElementTree as xml
-import pysideuic
 
 import maya.cmds as cmds
 import maya.OpenMayaUI as openMayaUI
 import maya.mel as mel
+
+mayaApi = cmds.about(api=True)
+if mayaApi >= 201700:
+    import shiboken2 as shiboken
+    import pyside2uic as pysideuic
+else:
+    import shiboken
+    import pysideuic
 
 def show():
     global skinWranglerWindow
@@ -55,16 +61,18 @@ def loadUiType(uiFile):
         exec pyc in frame
 
         #Fetch the base_class and form class based on their type in the xml from designer
+        print form_class + ' - ' + widget_class
         form_class = frame['Ui_%s'%form_class]
-        base_class = eval('QtGui.%s'%widget_class)
+        base_class = eval('QtWidgets.%s'%widget_class)
+
     return form_class, base_class
 
 def getMayaWindow():
     ptr = openMayaUI.MQtUtil.mainWindow()
     if ptr is not None:
-        return shiboken.wrapInstance(long(ptr), QtGui.QWidget)
+        return shiboken.wrapInstance(long(ptr), QtWidgets.QWidget)
 
-uiFile = None	
+uiFile = None 
 try:
     selfDirectory = os.path.dirname(__file__)
     uiFile = selfDirectory + '/skinWrangler.ui'
@@ -82,7 +90,7 @@ else:
 ########################################################################
        
 
-class skinWrangler(base_class, form_class):	
+class skinWrangler(base_class, form_class): 
     title = 'skinWrangler 2.0'
     
     currentMesh = None
@@ -113,46 +121,46 @@ class skinWrangler(base_class, form_class):
 
         ## Connect UI
         ########################################################################
-        self.connect(self.refreshBTN, QtCore.SIGNAL("clicked()"), self.refreshUI)
+        self.refreshBTN.clicked.connect(self.refreshUI)
         
         #selection buttons
-        self.connect(self.selShellBTN, QtCore.SIGNAL("clicked()"), self.selShellFn)
-        self.connect(self.selGrowBTN, QtCore.SIGNAL("clicked()"), self.selGrowFn)
-        self.connect(self.selShrinkBTN, QtCore.SIGNAL("clicked()"), self.selShrinkFn)
-        self.connect(self.selLoopBTN, QtCore.SIGNAL("clicked()"), self.selLoopFn)
-        self.connect(self.selPointsEffectedBTN, QtCore.SIGNAL("clicked()"), self.selPointsEffectedFn)
-        
+        self.selShellBTN.clicked.connect(self.selShellFn)
+        self.selGrowBTN.clicked.connect(self.selGrowFn)
+        self.selShrinkBTN.clicked.connect(self.selShrinkFn)
+        self.selLoopBTN.clicked.connect(self.selLoopFn)
+        self.selPointsEffectedBTN.clicked.connect(self.selPointsEffectedFn)
+
         #weight buttons
-        self.connect(self.weightZeroBTN, QtCore.SIGNAL("clicked()"), self.weightZeroFn)
-        self.connect(self.weightHalfBTN, QtCore.SIGNAL("clicked()"), self.weightHalfFn)
-        self.connect(self.weightFullBTN, QtCore.SIGNAL("clicked()"), self.weightFullFn)
-        self.connect(self.setWeightBTN, QtCore.SIGNAL("clicked()"), self.setWeightFn)
-        self.connect(self.plusWeightBTN, QtCore.SIGNAL("clicked()"), self.plusWeightFn)
-        self.connect(self.minusWeightBTN, QtCore.SIGNAL("clicked()"), self.minusWeightFn)
-        self.connect(self.copyBTN, QtCore.SIGNAL("clicked()"), self.copyFn)
-        self.connect(self.pasteBTN, QtCore.SIGNAL("clicked()"), self.pasteFn)
-        self.connect(self.selectVertsWithInfBTN, QtCore.SIGNAL("clicked()"), self.selectVertsWithInfFn)
-        self.connect(self.setAverageWeightBTN, QtCore.SIGNAL("clicked()"), self.setAverageWeightFn)
-        
+        self.weightZeroBTN.clicked.connect(self.weightZeroFn)
+        self.weightHalfBTN.clicked.connect(self.weightHalfFn)
+        self.weightFullBTN.clicked.connect(self.weightFullFn)
+        self.setWeightBTN.clicked.connect(self.setWeightFn)
+        self.plusWeightBTN.clicked.connect(self.plusWeightFn)
+        self.minusWeightBTN.clicked.connect(self.minusWeightFn)
+        self.copyBTN.clicked.connect(self.copyFn)
+        self.pasteBTN.clicked.connect(self.pasteFn)
+        self.selectVertsWithInfBTN.clicked.connect(self.selectVertsWithInfFn)
+        self.setAverageWeightBTN.clicked.connect(self.setAverageWeightFn)
+
         #callbacks on state change
-        self.connect(self.jointLST, QtCore.SIGNAL('itemSelectionChanged ()'), self.jointListSelChanged)
-        self.connect(self.listAllCHK, QtCore.SIGNAL('stateChanged(int)'), self.listAllChanged)
-        self.connect(self.nameSpaceCHK, QtCore.SIGNAL('stateChanged(int)'), self.cutNamespace)
-        self.connect(self.skinNormalCMB, QtCore.SIGNAL('currentIndexChanged(int)'), self.skinNormalFn)
-        
+        self.jointLST.itemSelectionChanged.connect(self.jointListSelChanged)
+        self.listAllCHK.stateChanged.connect(self.listAllChanged)
+        self.nameSpaceCHK.stateChanged.connect(self.cutNamespace)
+        self.skinNormalCMB.currentIndexChanged.connect(self.skinNormalFn)
+
         #tree filter
-        self.connect(self.filterLINE, QtCore.SIGNAL('returnPressed ()'), self.refreshUI)
-        self.connect(self.filterBTN, QtCore.SIGNAL("clicked()"), self.refreshUI)
-        
+        self.filterLINE.returnPressed.connect(self.refreshUI)
+        self.filterBTN.clicked.connect(self.refreshUI)
+
         #SKIN UTILS TAB:
-        self.connect(self.clampInfBTN, QtCore.SIGNAL("clicked()"), self.clampInfFn)
-        self.connect(self.bindPoseBTN, QtCore.SIGNAL("clicked()"), self.bindPoseFn)
-        self.connect(self.removeUnusedBTN, QtCore.SIGNAL("clicked()"), self.removeUnusedFn)
-        self.connect(self.addJntBTN, QtCore.SIGNAL("clicked()"), self.addJntFn)
+        self.clampInfBTN.clicked.connect(self.clampInfFn)
+        self.bindPoseBTN.clicked.connect(self.bindPoseFn)
+        self.removeUnusedBTN.clicked.connect(self.removeUnusedFn)
+        self.addJntBTN.clicked.connect(self.addJntFn)
         
         #TOOLS TAB
-        self.connect(self.jointOnBboxCenterBTN, QtCore.SIGNAL("clicked()"), self.jointOnBboxCenterFn)
-        self.connect(self.rigidShellsBtn, QtCore.SIGNAL("clicked()"), self.rigidShellsFn)
+        self.jointOnBboxCenterBTN.clicked.connect(self.jointOnBboxCenterFn)
+        self.rigidShellsBtn.clicked.connect(self.rigidShellsFn)
 
         self.scriptJobNum = cmds.scriptJob(e=['SelectionChanged', 'skinWranglerWindow.refreshUI()'], kws=1)
         print 'skinWrangler initialized as', wName, 'scriptJob:', self.scriptJobNum
@@ -166,7 +174,7 @@ class skinWrangler(base_class, form_class):
         self.removeAnnotations()
     
     def closeExistingWindow(self):
-        for qt in QtGui.qApp.topLevelWidgets():
+        for qt in QtWidgets.QApplication.topLevelWidgets():
             try:
                 if qt.__class__.__name__ == self.__class__.__name__:
                     qt.deleteLater()
@@ -670,7 +678,7 @@ class skinWrangler(base_class, form_class):
         
         filter = str(self.filterLINE.text()).lower()
         
-        wid = QtGui.QTreeWidgetItem()
+        wid = QtWidgets.QTreeWidgetItem()
         font = wid.font(0)
         font.setWeight(QtGui.QFont.Normal)
         font.setPointSize(8)
@@ -681,7 +689,7 @@ class skinWrangler(base_class, form_class):
             sel, msh, vtx, skin = s
             self.vtxLBL.setText(str(vtx))
         else:
-            wid = QtGui.QTreeWidgetItem()
+            wid = QtWidgets.QTreeWidgetItem()
             wid.setText(0, 'MAKE A COMPONENT\n SELECTION ON\n SKINNED MESH')
             wid.setFont(0, font)
             self.jointLST.addTopLevelItem(wid)
@@ -724,7 +732,7 @@ class skinWrangler(base_class, form_class):
             red = QtGui.QColor(200,75,75,255)
             for inf in wDict.keys():
                 if filter in inf.lower() or filter == '':
-                    wid = QtGui.QTreeWidgetItem()
+                    wid = QtWidgets.QTreeWidgetItem()
                     infName = inf
                     if self.nameSpaceCHK.isChecked(): infName = inf.split(':')[-1]
                     wid.setText(0, infName)
@@ -737,7 +745,7 @@ class skinWrangler(base_class, form_class):
                 for inf in cmds.skinCluster(self.currentSkin, q=1, inf=1):
                     if inf not in wDict.keys():
                         if filter in inf.lower() or filter == '':
-                            wid = QtGui.QTreeWidgetItem()
+                            wid = QtWidgets.QTreeWidgetItem()
                             wid.setIcon(0, self.iconLib['joint'])
                             if self.nameSpaceCHK.isChecked(): inf = inf.split(':')[-1]
                             wid.setText(0, inf)
