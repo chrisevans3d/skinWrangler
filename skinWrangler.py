@@ -15,21 +15,15 @@ skinWranglerWindow = sw.show()
 
 import os
 
-from .Qtpy.Qt import QtGui, QtWidgets
-from cStringIO import StringIO
-import xml.etree.ElementTree as xml
+from PySide2 import QtWidgets, QtGui
 
 import maya.cmds as cmds
 import maya.OpenMayaUI as openMayaUI
 import maya.mel as mel
 
-mayaApi = cmds.about(api=True)
-if mayaApi >= 201700:
-    import shiboken2 as shiboken
-    import pyside2uic as pysideuic
-else:
-    import shiboken
-    import pysideuic
+import shiboken2
+import load_ui
+
 
 def show():
     global skinWranglerWindow
@@ -42,47 +36,11 @@ def show():
     skinWranglerWindow.show()
     return skinWranglerWindow
 
-def loadUiType(uiFile):
-    """
-    Pyside lacks the "loadUiType" command, so we have to convert the ui file to py code in-memory first
-    and then execute it in a special frame to retrieve the form_class.
-    http://tech-artists.org/forum/showthread.php?3035-PySide-in-Maya-2013
-    """
-    parsed = xml.parse(uiFile)
-    widget_class = parsed.find('widget').get('class')
-    form_class = parsed.find('class').text
-
-    with open(uiFile, 'r') as f:
-        o = StringIO()
-        frame = {}
-
-        pysideuic.compileUi(f, o, indent=0)
-        pyc = compile(o.getvalue(), '<string>', 'exec')
-        exec pyc in frame
-
-        #Fetch the base_class and form class based on their type in the xml from designer
-        print form_class + ' - ' + widget_class
-        form_class = frame['Ui_%s'%form_class]
-        base_class = eval('QtWidgets.%s'%widget_class)
-
-    return form_class, base_class
 
 def getMayaWindow():
     ptr = openMayaUI.MQtUtil.mainWindow()
     if ptr is not None:
-        return shiboken.wrapInstance(long(ptr), QtWidgets.QWidget)
-
-uiFile = None 
-try:
-    selfDirectory = os.path.dirname(__file__)
-    uiFile = selfDirectory + '/skinWrangler.ui'
-except:
-    uiFile = 'D:\\Build\\usr\\jeremy_ernst\\MayaTools\\General\\Scripts\\epic\\rigging\\skinWrangler\\skinWrangler.ui'
-if os.path.isfile(uiFile):
-    form_class, base_class = loadUiType(uiFile)
-else:
-    cmds.error('Cannot find UI file: ' + uiFile)
-
+        return shiboken2.wrapInstance(int(ptr), QtWidgets.QWidget)
 
 
 ########################################################################
@@ -90,8 +48,8 @@ else:
 ########################################################################
        
 
-class skinWrangler(base_class, form_class): 
-    title = 'skinWrangler 2.0'
+class skinWrangler(QtWidgets.QDialog):
+    title = 'skinWrangler 2.1'
     
     currentMesh = None
     currentSkin = None
@@ -114,10 +72,10 @@ class skinWrangler(base_class, form_class):
         self.closeExistingWindow()
         super(skinWrangler, self).__init__(parent)
         
-        self.setupUi(self)
+        load_ui.load_ui(__file__[:__file__.rfind('.')] + '.ui', self)
         self.setWindowTitle(self.title)
         
-        wName = openMayaUI.MQtUtil.fullName(long(shiboken.getCppPointer(self)[0]))
+        wName = openMayaUI.MQtUtil.fullName(int(shiboken2.getCppPointer(self)[0]))
 
         ## Connect UI
         ########################################################################
@@ -162,14 +120,14 @@ class skinWrangler(base_class, form_class):
         self.jointOnBboxCenterBTN.clicked.connect(self.jointOnBboxCenterFn)
         self.rigidShellsBtn.clicked.connect(self.rigidShellsFn)
 
-        self.scriptJobNum = cmds.scriptJob(e=['SelectionChanged', 'skinWranglerWindow.refreshUI()'], kws=1)
-        print 'skinWrangler initialized as', wName, 'scriptJob:', self.scriptJobNum
+        self.scriptJobNum = cmds.scriptJob(e=['SelectionChanged', self.refreshUI])
+        print('skinWrangler initialized as', wName, 'scriptJob:', self.scriptJobNum)
         self.refreshUI()
         
     def closeEvent(self, e):
         if self.scriptJobNum:
-            print '[skinWrangler] Killing scriptJob (' + str(self.scriptJobNum) + ')'
-            cmds.scriptJob( kill=self.scriptJobNum, force=1)
+            print('[skinWrangler] Killing scriptJob (' + str(self.scriptJobNum) + ')')
+            cmds.scriptJob(kill=self.scriptJobNum, force=1)
             self.scriptJobNum = None
         self.removeAnnotations()
     
@@ -178,7 +136,7 @@ class skinWrangler(base_class, form_class):
             try:
                 if qt.__class__.__name__ == self.__class__.__name__:
                     qt.deleteLater()
-                    print 'skinWrangler: Closed ' + str(qt.__class__.__name__)
+                    print('skinWrangler: Closed ' + str(qt.__class__.__name__))
             except:
                 pass
 
@@ -344,14 +302,14 @@ class skinWrangler(base_class, form_class):
                 self.currentInf = nodes
                 
                 if debug:
-                    print self.currentInf
+                    print(self.currentInf)
                 
                 #Annotation
                 if self.dynAnnotationCHK.isChecked():
                     self.removeAnnotations()
                     self.annotateNodes(nodes)
                 if debug:
-                    print self.currentInf
+                    print(self.currentInf)
             
         except Exception as e:
             cmds.error(e)
@@ -425,7 +383,7 @@ class skinWrangler(base_class, form_class):
             else: cmds.warning('[skinWrangler] No influences/joints selected')
             self.refreshUI()
         except Exception as e:
-            print e
+            print(e)
         finally:
             cmds.undoInfo(closeChunk=True)
     
@@ -439,7 +397,7 @@ class skinWrangler(base_class, form_class):
             else: cmds.warning('[skinWrangler] No influences/joints selected')
             self.refreshUI()
         except Exception as e:
-            print e
+            print(e)
         finally:
             cmds.undoInfo(closeChunk=True)
     
@@ -462,7 +420,7 @@ class skinWrangler(base_class, form_class):
     def pasteFn(self):
         self.getSelected()
         tvTuples = self.vDictToTv(self.copyCache)
-        print '[skinWrangler] Pasting weights to current selection: ', tvTuples
+        print('[skinWrangler] Pasting weights to current selection: ', tvTuples)
         cmds.skinPercent(self.currentSkin, self.currentVerts, tv=tvTuples)
         self.refreshUI()
     
@@ -532,9 +490,9 @@ class skinWrangler(base_class, form_class):
             for vert in returnVerts:
                 cmds.select((node + '.vtx[' + str(vert) + ']'), add=1)
         if debug:
-            print 'checkMaxSkinInfluences>>> Total Verts:', verts
-            print 'checkMaxSkinInfluences>>> Vertices Over Threshold:', len(returnVerts)
-            print 'checkMaxSkinInfluences>>> Indices:', str(returnVerts)
+            print('checkMaxSkinInfluences>>> Total Verts:', verts)
+            print('checkMaxSkinInfluences>>> Vertices Over Threshold:', len(returnVerts))
+            print('checkMaxSkinInfluences>>> Indices:', str(returnVerts))
         return returnVerts
     
     def checkLockedInfluences(self, skinCluster):
@@ -581,7 +539,7 @@ class skinWrangler(base_class, form_class):
         if doit:
             verts = self.checkMaxSkinInfluences(mesh, maxInf)
             
-            print 'pruneVertWeights>> Pruning', len(verts), 'vertices'
+            print('pruneVertWeights>> Pruning', len(verts), 'vertices')
             
             for v in verts:
                 infs = cmds.skinPercent(skinClust, (mesh + ".vtx[" + str(v) + "]"), q=1, v=1)
@@ -589,7 +547,7 @@ class skinWrangler(base_class, form_class):
                 for inf in infs:
                     if inf > 0.0: active.append(inf)
                 active = list(reversed(sorted(active)))
-                if debug: print 'Clamping vertex', v, 'to', active[maxInf]
+                if debug: print('Clamping vertex', v, 'to', active[maxInf])
                 cmds.skinPercent(skinClust, (mesh + ".vtx[" + str(v) + "]"), pruneWeights=(active[maxInf]*1.001))
         else:
             cmds.warning('Cannot clamp influences due to locked weights on skinCluster')
@@ -659,7 +617,7 @@ class skinWrangler(base_class, form_class):
                 tvTuples = self.vDictToTv(aw)
                 cmds.skinPercent(skin, facesNice, tv=tvTuples)
         except Exception as e:
-            print e
+            print(e)
         finally:
             cmds.undoInfo(closeChunk=True)
 
@@ -754,28 +712,8 @@ class skinWrangler(base_class, form_class):
             if self.currentInf:
                 for item in self.currentInf:
                     self.getJointFromList(item).setSelected(True)
-            print 'refreshUI completed.'
+            print('refreshUI completed.')
                     
-
-    def profileRefreshUI(self):
-        import hotshot
-        import hotshot.stats
-        
-        prof = hotshot.Profile("c:\\myFn.prof")
-        prof.runcall(self.refreshUI)
-        prof.close()
-        #now we load the profile stats
-        stats = hotshot.stats.load("c:\\myFn.prof")
-        stats.strip_dirs()
-        stats.sort_stats('time', 'calls')
-         
-        #and finally, we print the profile stats to the disk in a file 'myFn.log'
-        saveout = sys.stdout
-        fsock = open('c:\\myFn.log', 'w')
-        sys.stdout = fsock
-        stats.print_stats(20)
-        sys.stdout = saveout
-        fsock.close()
 
 if __name__ == '__main__':
     show()
